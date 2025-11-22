@@ -116,11 +116,19 @@ create procedure inserir_produto(
     in pQtd int
 )
 begin
-    insert into tbproduto (CodigoBarras, Nome, Valor, Qtd)
-    values (pCodigoBarras, pNome, pValor, pQtd);
+    -- Verifica se o produto já existe pelo código de barras
+    if not exists (
+        select 1 from tbproduto where CodigoBarras = pCodigoBarras
+    ) then
+        
+        insert into tbproduto (CodigoBarras, Nome, Valor, Qtd)
+        values (pCodigoBarras, pNome, pValor, pQtd);
+    
+    end if;
 end$$
 
 delimiter ;
+
 
 -- Chamadas:
 call inserir_produto(12345678910111,'Rei de Papel Mache', 54.61, 120);
@@ -146,8 +154,13 @@ create procedure inserir_endereco(
     in pCEP int
 )
 begin
-    insert into tbendereco (Logradouro, BairroID, CidadeId, UFId, CEP)
-    values (pLogradouro, pBairroID, pCidadeID, pUFID, pCEP);
+    -- Verifica se o CEP já existe
+    if not exists (select 1 from tbendereco where CEP = pCEP) then
+    
+        insert into tbendereco (Logradouro, BairroID, CidadeId, UFId, CEP)
+        values (pLogradouro, pBairroID, pCidadeID, pUFID, pCEP);
+    
+    end if;
 end$$
 
 delimiter ;
@@ -172,34 +185,77 @@ call inserir_endereco('Rua dos Amores', 10, 12, 5, 12345060);
 
 delimiter $$
 
-create procedure inserir_clientepf(
-    in pIdCli int,
-    in pNomeCli varchar(100),
-    in pNumEnd int,
-    in pCompEnd varchar(100),
-    in pCEP int,
-    in pCPF bigint,
-    in pRG int,
-    in pRG_Dig char(1),
-    in pNasc date
+DELIMITER $$
+
+CREATE PROCEDURE inserir_cliente_pf(
+    IN pNomeCli VARCHAR(200),
+    IN pNumEnd INT,
+    IN pCompEnd VARCHAR(50),
+    IN pCEP DECIMAL(8,0),
+    IN pLogradouro VARCHAR(150),
+    IN pBairro VARCHAR(100),
+    IN pCidade VARCHAR(100),
+    IN pUF CHAR(2),
+    IN pCPF DECIMAL(11,0),
+    IN pRG DECIMAL(9,0),
+    IN pRGDig CHAR(1),
+    IN pNasc DATE
 )
-begin
-    insert into tbcliente (IdCli, NomeCli, NumEnd, CompEnd, CEP)
-    values (pIdCli, pNomeCli, pNumEnd, pCompEnd, pCEP);
+BEGIN
+    DECLARE vBairroId INT;
+    DECLARE vCidadeId INT;
+    DECLARE vUFId INT;
+    DECLARE vIdCli INT;
 
-    insert into tbcliente_pf(CPF, RG, RG_Dig, Nasc, IdCli)
-    values (pCPF, pRG, pRG_Dig, pNasc, pIdCli);
-end$$
+    -- Verificação Estado
+    IF NOT EXISTS (SELECT 1 FROM tbestado WHERE UF = pUF) THEN
+        INSERT INTO tbestado (UF) VALUES (pUF);
+    END IF;
 
-delimiter ;
+    SELECT UFId INTO vUFId FROM tbestado WHERE UF = pUF;
+
+    -- Verificação Cidade
+    IF NOT EXISTS (SELECT 1 FROM tbcidade WHERE Cidade = pCidade) THEN
+        INSERT INTO tbcidade (Cidade) VALUES (pCidade);
+    END IF;
+
+    SELECT CidadeId INTO vCidadeId FROM tbcidade WHERE Cidade = pCidade;
+
+    -- Verificação Bairro
+    IF NOT EXISTS (SELECT 1 FROM tbbairro WHERE Bairro = pBairro) THEN
+        INSERT INTO tbbairro (Bairro) VALUES (pBairro);
+    END IF;
+
+    SELECT BairroId INTO vBairroId FROM tbbairro WHERE Bairro = pBairro;
+
+    -- Insert Endereço
+    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
+        INSERT INTO tbendereco (Logradouro, BairroId, CidadeId, UFId, CEP)
+        VALUES (pLogradouro, vBairroId, vCidadeId, vUFId, pCEP);
+    END IF;
+
+    -- Insert Cliente
+    INSERT INTO tbcliente (NomeCli, NumEnd, CompEnd, CEP)
+    VALUES (pNomeCli, pNumEnd, pCompEnd, pCEP);
+	
+    -- Pega o ultimo ID criado pelo o autoincrement
+    SET vIdCli = LAST_INSERT_ID();
+
+    -- Cliente PF
+    INSERT INTO tbcliente_pf (CPF, RG, RG_Dig, Nasc, IdCli)
+    VALUES (pCPF, pRG, pRGDig, pNasc, vIdCli);
+
+END $$
+
+DELIMITER ;
+
 
 -- Chamadas:
-call inserir_clientepf(1, 'Pimpão', 325, null, 12345051, 12345678911, 12345678, '0', '2000-12-10');
-call inserir_clientepf(2, 'Disney Chaplin', 89, 'Ap. 12', 12345053, 12345678912, 12345679, '0', '2001-11-21');
-call inserir_clientepf(3, 'Marciano', 744, null, 12345054, 12345678913, 12345670, '0', '2001-01-06');
-call inserir_clientepf(4, 'Lança perfume', 128, null, 12345059, 12345678914, 12345671, 'X', '2004-05-04');
-call inserir_clientepf(5, 'Remédio Amargo', 2585, null, 12345058, 12345678915, 12345678, '0', '2002-07-15');
-
+call inserir_clientepf('Pimpão', 325, null, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
+call inserir_clientepf('Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
+call inserir_clientepf('Marciano', 744, null, 12345054, 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ', 12345678913, 12345680, '0', '2001-06-01');
+call inserir_clientepf('Lança Perfume', 128, null, 12345059, 'Rua Vieia', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
+call inserir_clientepf('Remédio Amargo', 2585, null, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678915, 12345682, '0', '2002-07-15');
 
 -- EX8 – CLIENTE PJ
 
