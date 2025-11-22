@@ -38,12 +38,14 @@ call inserir_cidade('Pirituba');
 call inserir_cidade('Lapa');
 call inserir_cidade('Ponta Grossa');
 
+
 /*	
 call inserir_cidade(9, 'São Paulo');
 call inserir_cidade(10, 'Barra Mansa');
 call inserir_cidade(11, 'Cuiabá');
 call inserir_cidade(12, 'Recife');
 */
+
 
 -- EX3 – ESTADOS
 delimiter $$
@@ -66,10 +68,12 @@ call inserir_estado('SP');
 call inserir_estado('RJ');
 call inserir_estado('RS');
 
+
 /*
 call inserir_estado('MT');
 call inserir_estado('PE');
 */
+
 
 -- EX4 – BAIRROS
 
@@ -87,12 +91,12 @@ end$$
 
 delimiter ;
 
-
 -- Chamadas:
 call inserir_bairro('Aclimação');
 call inserir_bairro('Capão Redondo');
 call inserir_bairro('Pirituba');
 call inserir_bairro('Liberdade');
+
 
 /*
 call inserir_bairro('Lapa');
@@ -129,7 +133,6 @@ end$$
 
 delimiter ;
 
-
 -- Chamadas:
 call inserir_produto(12345678910111,'Rei de Papel Mache', 54.61, 120);
 call inserir_produto(12345678910112,'Bolinha de Sabão', 100.45, 120);
@@ -139,7 +142,6 @@ call inserir_produto(12345678910115,'Maçã Laranja', 99.44, 120);
 call inserir_produto(12345678910116,'Boneco do Hitler', 124.00, 200);
 call inserir_produto(12345678910117,'Farinha de Suruí', 50.00, 200);
 call inserir_produto(12345678910118,'Zelador de Cemitério', 24.50, 100);
-
 
 
 -- EX6 – ENDEREÇOS
@@ -180,6 +182,7 @@ call inserir_endereco('Rua Veia', 9, 11, 4, 12345059);
 call inserir_endereco('Rua Nova', 9, 11, 4, 12345058);
 call inserir_endereco('Rua dos Amores', 10, 12, 5, 12345060);
 */
+
 
 -- EX7 – CLIENTE PF
 
@@ -249,7 +252,6 @@ END $$
 
 DELIMITER ;
 
-
 -- Chamadas:
 call inserir_clientepf('Pimpão', 325, null, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
 call inserir_clientepf('Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
@@ -257,69 +259,115 @@ call inserir_clientepf('Marciano', 744, null, 12345054, 'Rua Ximbú', 'Penha', '
 call inserir_clientepf('Lança Perfume', 128, null, 12345059, 'Rua Vieia', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
 call inserir_clientepf('Remédio Amargo', 2585, null, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678915, 12345682, '0', '2002-07-15');
 
+
 -- EX8 – CLIENTE PJ
 
-delimiter $$
+DELIMITER $$
 
-create procedure inserir_clientepj(
-    in pIdCli int,
-    in pNomeCli varchar(100),
-    in pNumEnd int,
-    in pCompEnd varchar(100),
-    in pCEP int,
-    in pCNPJ bigint,
-    in pIE bigint
+CREATE PROCEDURE inserir_cliente_pj(
+    IN pNomeCli VARCHAR(200),
+    IN pNumEnd INT,
+    IN pCompEnd VARCHAR(50),
+    IN pCEP DECIMAL(8,0),
+    IN pLogradouro VARCHAR(150),
+    IN pBairro VARCHAR(100),
+    IN pCidade VARCHAR(100),
+    IN pUF CHAR(2),
+    IN pCNPJ DECIMAL(14,0),
+    IN pIE DECIMAL(11,0)
 )
-begin
-    insert into tbcliente (IdCli, NomeCli, NumEnd, CompEnd, CEP)
-    values (pIdCli, pNomeCli, pNumEnd, pCompEnd, pCEP);
+BEGIN
+    DECLARE vBairroId INT;
+    DECLARE vCidadeId INT;
+    DECLARE vUFId INT;
+    DECLARE vIdCli INT;
 
-    insert into tbcliente_pj(CNPJ, IE, IdCli)
-    values (pCNPJ, pIE, pIdCli);
-end$$
+    IF NOT EXISTS (SELECT 1 FROM tbestado WHERE UF = pUF) THEN
+        INSERT INTO tbestado (UF) VALUES (pUF);
+    END IF;
 
-delimiter ;
+    SELECT UFId INTO vUFId FROM tbestado WHERE UF = pUF;
+
+    IF NOT EXISTS (SELECT 1 FROM tbcidade WHERE Cidade = pCidade) THEN
+        INSERT INTO tbcidade (Cidade) VALUES (pCidade);
+    END IF;
+
+    SELECT CidadeId INTO vCidadeId FROM tbcidade WHERE Cidade = pCidade;
+
+    IF NOT EXISTS (SELECT 1 FROM tbbairro WHERE Bairro = pBairro) THEN
+        INSERT INTO tbbairro (Bairro) VALUES (pBairro);
+    END IF;
+
+    SELECT BairroId INTO vBairroId FROM tbbairro WHERE Bairro = pBairro;
+
+    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
+        INSERT INTO tbendereco (Logradouro, BairroId, CidadeId, UFId, CEP)
+        VALUES (pLogradouro, vBairroId, vCidadeId, vUFId, pCEP);
+    END IF;
+
+    INSERT INTO tbcliente (NomeCli, NumEnd, CompEnd, CEP)
+    VALUES (pNomeCli, pNumEnd, pCompEnd, pCEP);
+
+    SET vIdCli = LAST_INSERT_ID();
+
+    INSERT INTO tbcliente_pj (CNPJ, IE, IdCli)
+    VALUES (pCNPJ, pIE, vIdCli);
+
+END $$
+
+DELIMITER ;
 
 -- Chamadas:
-call inserir_clientepj(6, 'Paganada', 159, null, 12345051, 12345678912345, 98765432198);
-call inserir_clientepj(7, 'Caloteando', 69, null, 12345053, 12345678912346, 98765432199);
-call inserir_clientepj(8, 'Semgrana', 189, null, 12345060, 12345678912347, 98765432100);
-call inserir_clientepj(9, 'Cemreais', 5024, 'Sala 23', 12345060, 12345678912348, 98765432101);
-call inserir_clientepj(10, 'Durango', 1254, null, 12345060, 12345678912349, 98765432102);
+call inserir_clientepf(1, 'Pimpão', 325, null, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
+call inserir_clientepf(2, 'Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
+call inserir_clientepf(3, 'Marciano', 744, null, 12345054, 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ', 12345678913, 12345680, '0', '2001-06-01');
+call inserir_clientepf(4, 'Lança Perfume', 128, null, 12345059, 'Rua Vieia', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
+call inserir_clientepf(5, 'Remédio Amargo', 2585, null, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678915, 12345682, '0', '2002-07-15');
 
--- EX9 - Compras
 
-delimiter $$
+-- EX9 - COMPRAS
 
-create procedure spinserir_compras(
-pNotaFiscal int,
-pDataCompra varchar(50),
-pValorTotal decimal(8,2),
-pQtdTotal int,
-pCodigo decimal(14,0),
-vFornecedor varchar(200),
-pValorItem decimal(8,2),
-pQtd int)
-begin
-if exists (select 1 from tbfornecedor where Nome = vFornecedor) and exists (select 1 from tbproduto where CodigoBarras = pCodigo) then
-        insert into tbcompra (NotaFiscal, DataCompra, ValorTotal, QtdTotal)
-        values (pNotaFiscal, STR_TO_DATE(pDataCompra, '%d/%m/%Y'), pValorTotal, pQtdTotal);
+DELIMITER $$
 
-        insert into tbitemcompra (ValorItem, CodigoBarras, NotaFiscal, Qtd)
-        values (pValorItem, pCodigo, pNotaFiscal, pQtd);
-else 
-signal sqlstate '45000' set message_text = 'erro, não foi possível encontrar fornecedor ou já há uma duplicação de pk';
-end if;
-end$$
-delimiter;
+CREATE PROCEDURE spInserir_Compras(
+    IN pNotaFiscal INT,
+    IN pDataCompra VARCHAR(50),
+    IN pFornecedor VARCHAR(200),
+    IN pCodigo DECIMAL(14,0),
+    IN pValorItem DECIMAL(8,2),
+    IN pQtd INT,
+    IN pQtdTotal INT,
+    IN pValorTotal DECIMAL(8,2)
+)
+BEGIN
+    -- Verifica fornecedor
+    IF EXISTS (SELECT 1 FROM tbfornecedor WHERE Nome = pFornecedor)
+       AND EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigo)
+    THEN
+        
+        INSERT INTO tbcompra (NotaFiscal, DataCompra, ValorTotal, QtdTotal)
+        VALUES (pNotaFiscal, STR_TO_DATE(pDataCompra, '%d/%m/%Y'), pValorTotal, pQtdTotal);
 
-call spinserir_compras(8459, '01/05/2018', 21944.00, 700, 12345678910111, 'Amoroso e Doce', 22.22, 200);
-call spinserir_compras(2482, '22/04/2020', 7290.00, 180, 12345678910112, 'Revenda Chico Loco', 40.50, 180);
-call spinserir_compras(21563, '12/07/2020', 900.00, 300, 12345678910113, 'Marcelo Dedal', 3.00, 300);
-call spinserir_compras(8449, '01/05/2018', 21944.00, 700, 12345678910114, 'Amoroso e Doce', 35.00, 500);
-call spinserir_compras(156354, '23/11/2021', 18900.00, 350, 12345678910115, 'Revenda Chico Loco', 54.00, 350);
+        INSERT INTO tbitemcompra (ValorItem, CodigoBarras, NotaFiscal, Qtd)
+        VALUES (pValorItem, pCodigo, pNotaFiscal, pQtd);
 
--- EX10 - registro vendas
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Fornecedor ou produto não encontrados.';
+    END IF;
+END $$
+
+DELIMITER ;
+
+-- Chamadas
+call spInserir_Compras(8449, '01/05/2018', 'Amoroso e Doce', 12345678910111, 22.22, 200, 700, 21944.00);
+call spInserir_Compras(2482, '22/04/2020', 'Revenda Chico Loco', 12345678910112, 40.50, 180, 180, 7290.00);
+call spInserir_Compras(21563, '12/07/2020', 'Marcelo Dedal', 12345678910113, 3.00, 300, 300, 900.00);
+call spInserir_Compras(8459, '01/05/2018', 'Amoroso e Doce', 12345678910114, 35.00, 500, 700, 21944.00);
+call spInserir_Compras(156354, '23/11/2021', 'Revenda Chico Loco', 12345678910115, 54.00, 350, 350, 18900.00);
+
+
+-- EX10 - REGISTRO DE VENDAS
 
 delimiter $$
 create procedure spinserir_registrovenda(
