@@ -17,80 +17,91 @@ values (1, 'Revenda Chico Loco',  1245678937123, 11934567897),
 delimiter $$
 
 create procedure inserir_cidade(
-    in pCidadeID int,
     in pCidade varchar(100)
 )
 begin
-    insert into tbcidade (CidadeID, Cidade)
-    values (pCidadeID, pCidade);
+    if not exists (select 1 from tbcidade where Cidade = pCidade) then
+        insert into tbcidade (Cidade)
+        values (pCidade);
+    end if;
 end$$
 
 delimiter ;
 
 -- Chamadas:
-call inserir_cidade(1, 'Rio de Janeiro');
-call inserir_cidade(2, 'São Carlos');
-call inserir_cidade(3, 'Campinas');
-call inserir_cidade(4, 'Franco da Rocha');
-call inserir_cidade(5, 'Osasco');
-call inserir_cidade(6, 'Pirituba');
-call inserir_cidade(7, 'Lapa');
-call inserir_cidade(8, 'Ponta Grossa');
+call inserir_cidade('Rio de Janeiro');
+call inserir_cidade('São Carlos');
+call inserir_cidade('Campinas');
+call inserir_cidade('Franco da Rocha');
+call inserir_cidade('Osasco');
+call inserir_cidade('Pirituba');
+call inserir_cidade('Lapa');
+call inserir_cidade('Ponta Grossa');
+
+/*	
 call inserir_cidade(9, 'São Paulo');
 call inserir_cidade(10, 'Barra Mansa');
 call inserir_cidade(11, 'Cuiabá');
 call inserir_cidade(12, 'Recife');
-
+*/
 
 -- EX3 – ESTADOS
-
 delimiter $$
 
 create procedure inserir_estado(
-    in pUfID int,
     in pUf varchar(2)
 )
 begin
-    insert into tbestado (UfID, Uf)
-    values (pUfID, pUf);
+    if not exists (select 1 from tbestado where UF = pUf) then
+        insert into tbestado (UF)
+        values (pUf);
+    end if;
 end$$
 
 delimiter ;
 
--- Chamadas:
-call inserir_estado(1, 'SP');
-call inserir_estado(2, 'RJ');
-call inserir_estado(3, 'RS');
-call inserir_estado(4, 'MT');
-call inserir_estado(5, 'PE');
 
+-- Chamadas:
+call inserir_estado('SP');
+call inserir_estado('RJ');
+call inserir_estado('RS');
+
+/*
+call inserir_estado('MT');
+call inserir_estado('PE');
+*/
 
 -- EX4 – BAIRROS
 
 delimiter $$
 
 create procedure inserir_bairro(
-    in pBairroID int,
     in pBairro varchar(100)
 )
 begin
-    insert into tbbairro (BairroID, Bairro)
-    values (pBairroID, pBairro);
+    if not exists (select 1 from tbbairro where Bairro = pBairro) then
+        insert into tbbairro (Bairro)
+        values (pBairro);
+    end if;
 end$$
 
 delimiter ;
 
+
 -- Chamadas:
-call inserir_bairro(1, 'Aclimação');
-call inserir_bairro(2, 'Capão Redondo');
-call inserir_bairro(3, 'Pirituba');
-call inserir_bairro(4, 'Liberdade');
-call inserir_bairro(5, 'Lapa');
-call inserir_bairro(6, 'Consolação');
-call inserir_bairro(7, 'Penha');
-call inserir_bairro(8, 'Barra Funda');
-call inserir_bairro(9, 'Jardim Santa Isabel');
-call inserir_bairro(10, 'Sei Lá');
+call inserir_bairro('Aclimação');
+call inserir_bairro('Capão Redondo');
+call inserir_bairro('Pirituba');
+call inserir_bairro('Liberdade');
+
+/*
+call inserir_bairro('Lapa');
+call inserir_bairro('Consolação');
+call inserir_bairro('Penha');
+call inserir_bairro('Barra Funda');
+call inserir_bairro('Jardim Santa Isabel');
+call inserir_bairro('Sei Lá');
+*/
 
 
 
@@ -150,10 +161,12 @@ call inserir_endereco('Rua Ximbú', 7, 1, 2, 12345054);
 call inserir_endereco('Rua Piu XI', 7, 3, 1, 12345055);
 call inserir_endereco('Rua Chocolate', 1, 10, 2, 12345056);
 call inserir_endereco('Rua Pão na Chapa', 8, 8, 3, 12345057);
+
+/*
 call inserir_endereco('Rua Veia', 9, 11, 4, 12345059);
 call inserir_endereco('Rua Nova', 9, 11, 4, 12345058);
 call inserir_endereco('Rua dos Amores', 10, 12, 5, 12345060);
-
+*/
 
 -- EX7 – CLIENTE PF
 

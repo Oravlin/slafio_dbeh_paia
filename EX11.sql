@@ -3,17 +3,17 @@ create database dbdistribuidora;
 use dbdistribuidora;
 
 create table tbbairro(
-BairroId int primary key,
+BairroId int primary key auto_increment,
 Bairro varchar(200) not null
 );
 
 create table tbcidade(
-CidadeId int primary key,
+CidadeId int primary key auto_increment,
 Cidade varchar(200) not null
 );
 
 create table tbestado(
-UFId int primary key,
+UFId int primary key auto_increment,
 UF char(2) not null
 );
 
@@ -29,11 +29,11 @@ foreign key (UFId) references tbestado(UFId)
 );
 
 create table tbcliente(
-IdCli int primary key,
-NomeCli varchar(200),
+IdCli int primary key auto_increment,
+NomeCli varchar(200) not null,
 NumEnd decimal(6,0) not null,
 CompEnd varchar(50),
-CEP Decimal(8,0),
+CEP Decimal(8,0) not null,
 foreign key (CEP) references tbendereco(CEP)
 );
 
@@ -48,7 +48,7 @@ foreign key (IdCli) references tbcliente(IdCli)
 
 create table tbcliente_pj(
 CNPJ decimal(14,0) primary key,
-IE decimal(11,0),
+IE decimal(11,0) unique,
 IdCli int,
 foreign key (IdCli) references tbcliente(IdCli)
 );
@@ -87,8 +87,8 @@ foreign key (CodigoBarras) references tbproduto(CodigoBarras)
 ); 
 
 create table tbfornecedor(
-Codigo int primary key,
-CNPJ Decimal (14,0),
+Codigo int primary key auto_increment,
+CNPJ Decimal (14,0) unique,
 Nome varchar(200) not null,
 Telefone Decimal(11,0)
 );
@@ -111,15 +111,3 @@ primary key (NotaFiscal, CodigoBarras),
 foreign key (NotaFiscal) references tbcompra(NotaFiscal),
 foreign key (CodigoBarras) references tbproduto(CodigoBarras)
 );
-
-insert into tbfornecedor (Codigo, Nome, CNPJ, Telefone)
-	  values (1, 'Revenda Chico Loco',  1245678937123, 11934567897),
-			 (2, 'José Faz Tudo S/A',  1345678937123, 11934567898),
-             (3, 'Vadalto Entregas',  1445678937123, 11934567899),
-             (4, 'Astrogildo das Estrela',  1545678937123, 11934567800),
-             (5, 'Amoroso e Doce',  1645678937123, 11934567801),
-             (6, 'Marcelo Dedal',  1745678937123, 11934567802),
-             (7, 'Francisco Cachaça',  1845678937123, 11934567803),
-             (8, 'Joãozinho Chupeta',  1945678937123, 11934567804);
-
-select * from tbfornecedor;
