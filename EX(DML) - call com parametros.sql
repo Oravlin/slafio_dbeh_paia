@@ -146,36 +146,57 @@ call inserir_produto(12345678910118,'Zelador de Cemitério', 24.50, 100);
 
 -- EX6 – ENDEREÇOS
 
-delimiter $$
+DELIMITER $$
 
-create procedure inserir_endereco(
-    in pLogradouro varchar(150),
-    in pBairroID int,
-    in pCidadeID int,
-    in pUFID int,
-    in pCEP int
+CREATE PROCEDURE inserir_endereco(
+    IN pLogradouro VARCHAR(150),
+    IN pBairro VARCHAR(100),
+    IN pCidade VARCHAR(100),
+    IN pUF CHAR(2),
+    IN pCEP INT
 )
-begin
-    -- Verifica se o CEP já existe
-    if not exists (select 1 from tbendereco where CEP = pCEP) then
-    
-        insert into tbendereco (Logradouro, BairroID, CidadeId, UFId, CEP)
-        values (pLogradouro, pBairroID, pCidadeID, pUFID, pCEP);
-    
-    end if;
-end$$
+BEGIN
+    DECLARE vBairroId INT;
+    DECLARE vCidadeId INT;
+    DECLARE vUFId INT;
 
-delimiter ;
+    IF NOT EXISTS (SELECT 1 FROM tbestado WHERE UF = pUF) THEN
+        INSERT INTO tbestado (UF) VALUES (pUF);
+    END IF;
+
+    SELECT UFId INTO vUFId FROM tbestado WHERE UF = pUF;
+
+    IF NOT EXISTS (SELECT 1 FROM tbcidade WHERE Cidade = pCidade) THEN
+        INSERT INTO tbcidade (Cidade) VALUES (pCidade);
+    END IF;
+
+    SELECT CidadeId INTO vCidadeId FROM tbcidade WHERE Cidade = pCidade;
+
+    IF NOT EXISTS (SELECT 1 FROM tbbairro WHERE Bairro = pBairro) THEN
+        INSERT INTO tbbairro (Bairro) VALUES (pBairro);
+    END IF;
+
+    SELECT BairroId INTO vBairroId FROM tbbairro WHERE Bairro = pBairro;
+
+    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
+        INSERT INTO tbendereco (Logradouro, BairroId, CidadeId, UFId, CEP)
+        VALUES (pLogradouro, vBairroId, vCidadeId, vUFId, pCEP);
+    END IF;
+
+END $$
+
+DELIMITER ;
 
 -- Chamadas:
-call inserir_endereco('Rua da Federal', 5, 9, 1, 12345050);
-call inserir_endereco('Av Brasil', 5, 3, 1, 12345051);
-call inserir_endereco('Rua Liberdade', 6, 9, 1, 12345052);
-call inserir_endereco('Av Paulista', 7, 1, 2, 12345053);
-call inserir_endereco('Rua Ximbú', 7, 1, 2, 12345054);
-call inserir_endereco('Rua Piu XI', 7, 3, 1, 12345055);
-call inserir_endereco('Rua Chocolate', 1, 10, 2, 12345056);
-call inserir_endereco('Rua Pão na Chapa', 8, 8, 3, 12345057);
+call inserir_endereco('Rua da Federal', 'Pirituba', 'Campinas', 'SP', 12345050);
+call inserir_endereco('Av Brasil', 'Pirituba', 'Campinas', 'SP', 12345051);
+call inserir_endereco('Rua Liberdade', 'Liberdade', 'Campinas', 'SP', 12345052);
+call inserir_endereco('Av Paulista', 'Lapa', 'São Paulo', 'SP', 12345053);
+call inserir_endereco('Rua Ximbú', 'Lapa', 'São Paulo', 'SP', 12345054);
+call inserir_endereco('Rua Piu XI', 'Lapa', 'Campinas', 'SP', 12345055);
+call inserir_endereco('Rua Chocolate', 'Capão Redondo', 'Osasco', 'SP', 12345056);
+call inserir_endereco('Rua Pão na Chapa', 'Ponta Grossa', 'Ponta Grossa', 'RS', 12345057);
+
 
 /*
 call inserir_endereco('Rua Veia', 9, 11, 4, 12345059);
@@ -186,18 +207,16 @@ call inserir_endereco('Rua dos Amores', 10, 12, 5, 12345060);
 
 -- EX7 – CLIENTE PF
 
-delimiter $$
-
 DELIMITER $$
 
-CREATE PROCEDURE inserir_cliente_pf(
+CREATE PROCEDURE inserir_clientepf(
     IN pNomeCli VARCHAR(200),
-    IN pNumEnd INT,
+    IN pNumEnd DECIMAL(6,0),
     IN pCompEnd VARCHAR(50),
     IN pCEP DECIMAL(8,0),
-    IN pLogradouro VARCHAR(150),
-    IN pBairro VARCHAR(100),
-    IN pCidade VARCHAR(100),
+    IN pLogradouro VARCHAR(200),
+    IN pBairro VARCHAR(200),
+    IN pCidade VARCHAR(200),
     IN pUF CHAR(2),
     IN pCPF DECIMAL(11,0),
     IN pRG DECIMAL(9,0),
@@ -210,71 +229,65 @@ BEGIN
     DECLARE vUFId INT;
     DECLARE vIdCli INT;
 
-    -- Verificação Estado
-    IF NOT EXISTS (SELECT 1 FROM tbestado WHERE UF = pUF) THEN
-        INSERT INTO tbestado (UF) VALUES (pUF);
-    END IF;
-
     SELECT UFId INTO vUFId FROM tbestado WHERE UF = pUF;
-
-    -- Verificação Cidade
-    IF NOT EXISTS (SELECT 1 FROM tbcidade WHERE Cidade = pCidade) THEN
-        INSERT INTO tbcidade (Cidade) VALUES (pCidade);
+    IF vUFId IS NULL THEN
+        INSERT INTO tbestado(UF) VALUES (pUF);
+        SET vUFId = LAST_INSERT_ID();
     END IF;
 
     SELECT CidadeId INTO vCidadeId FROM tbcidade WHERE Cidade = pCidade;
-
-    -- Verificação Bairro
-    IF NOT EXISTS (SELECT 1 FROM tbbairro WHERE Bairro = pBairro) THEN
-        INSERT INTO tbbairro (Bairro) VALUES (pBairro);
+    IF vCidadeId IS NULL THEN
+        INSERT INTO tbcidade(Cidade) VALUES (pCidade);
+        SET vCidadeId = LAST_INSERT_ID();
     END IF;
 
     SELECT BairroId INTO vBairroId FROM tbbairro WHERE Bairro = pBairro;
-
-    -- Insert Endereço
-    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
-        INSERT INTO tbendereco (Logradouro, BairroId, CidadeId, UFId, CEP)
-        VALUES (pLogradouro, vBairroId, vCidadeId, vUFId, pCEP);
+    IF vBairroId IS NULL THEN
+        INSERT INTO tbbairro(Bairro) VALUES (pBairro);
+        SET vBairroId = LAST_INSERT_ID();
     END IF;
 
-    -- Insert Cliente
-    INSERT INTO tbcliente (NomeCli, NumEnd, CompEnd, CEP)
+    IF NOT EXISTS(SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
+        INSERT INTO tbendereco(Logradouro, CEP, BairroId, CidadeId, UFId)
+        VALUES (pLogradouro, pCEP, vBairroId, vCidadeId, vUFId);
+    END IF;
+
+    INSERT INTO tbcliente(NomeCli, NumEnd, CompEnd, CEP)
     VALUES (pNomeCli, pNumEnd, pCompEnd, pCEP);
-	
-    -- Pega o ultimo ID criado pelo o autoincrement
+
     SET vIdCli = LAST_INSERT_ID();
 
-    -- Cliente PF
-    INSERT INTO tbcliente_pf (CPF, RG, RG_Dig, Nasc, IdCli)
+    INSERT INTO tbcliente_pf(CPF, RG, RG_Dig, Nasc, IdCli)
     VALUES (pCPF, pRG, pRGDig, pNasc, vIdCli);
 
-END $$
+END$$
 
 DELIMITER ;
 
--- Chamadas:
-call inserir_clientepf('Pimpão', 325, null, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
-call inserir_clientepf('Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
-call inserir_clientepf('Marciano', 744, null, 12345054, 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ', 12345678913, 12345680, '0', '2001-06-01');
-call inserir_clientepf('Lança Perfume', 128, null, 12345059, 'Rua Vieia', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
-call inserir_clientepf('Remédio Amargo', 2585, null, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678915, 12345682, '0', '2002-07-15');
+-- Chamadas
+
+CALL inserir_clientepf('Pimpão', 325, NULL, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
+CALL inserir_clientepf('Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
+CALL inserir_clientepf('Marciano', 744, NULL, 12345054, 'Rua Ximbu', 'Penha', 'Rio de Janeiro', 'RJ', 12345678913, 12345680, '0', '2001-06-01');
+CALL inserir_clientepf('Lanca Perfume', 128, NULL, 12345059, 'Rua Veia', 'Jardim Santa Isabel', 'Cuiaba', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
+CALL inserir_clientepf('Remedio Amargo', 2585, NULL, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiaba', 'MT', 12345678915, 12345682, '0', '2002-07-15');
 
 
 -- EX8 – CLIENTE PJ
 
 DELIMITER $$
 
-CREATE PROCEDURE inserir_cliente_pj(
+CREATE PROCEDURE inserir_clientepj(
     IN pNomeCli VARCHAR(200),
-    IN pNumEnd INT,
+    IN pNumEnd DECIMAL(6,0),
     IN pCompEnd VARCHAR(50),
     IN pCEP DECIMAL(8,0),
-    IN pLogradouro VARCHAR(150),
-    IN pBairro VARCHAR(100),
-    IN pCidade VARCHAR(100),
+    IN pLogradouro VARCHAR(200),
+    IN pBairro VARCHAR(200),
+    IN pCidade VARCHAR(200),
     IN pUF CHAR(2),
     IN pCNPJ DECIMAL(14,0),
-    IN pIE DECIMAL(11,0)
+    IN pIE DECIMAL(12,0)
 )
 BEGIN
     DECLARE vBairroId INT;
@@ -282,47 +295,48 @@ BEGIN
     DECLARE vUFId INT;
     DECLARE vIdCli INT;
 
-    IF NOT EXISTS (SELECT 1 FROM tbestado WHERE UF = pUF) THEN
-        INSERT INTO tbestado (UF) VALUES (pUF);
-    END IF;
-
     SELECT UFId INTO vUFId FROM tbestado WHERE UF = pUF;
-
-    IF NOT EXISTS (SELECT 1 FROM tbcidade WHERE Cidade = pCidade) THEN
-        INSERT INTO tbcidade (Cidade) VALUES (pCidade);
+    IF vUFId IS NULL THEN
+        INSERT INTO tbestado(UF) VALUES (pUF);
+        SET vUFId = LAST_INSERT_ID();
     END IF;
 
     SELECT CidadeId INTO vCidadeId FROM tbcidade WHERE Cidade = pCidade;
-
-    IF NOT EXISTS (SELECT 1 FROM tbbairro WHERE Bairro = pBairro) THEN
-        INSERT INTO tbbairro (Bairro) VALUES (pBairro);
+    IF vCidadeId IS NULL THEN
+        INSERT INTO tbcidade(Cidade) VALUES (pCidade);
+        SET vCidadeId = LAST_INSERT_ID();
     END IF;
 
     SELECT BairroId INTO vBairroId FROM tbbairro WHERE Bairro = pBairro;
-
-    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
-        INSERT INTO tbendereco (Logradouro, BairroId, CidadeId, UFId, CEP)
-        VALUES (pLogradouro, vBairroId, vCidadeId, vUFId, pCEP);
+    IF vBairroId IS NULL THEN
+        INSERT INTO tbbairro(Bairro) VALUES (pBairro);
+        SET vBairroId = LAST_INSERT_ID();
     END IF;
 
-    INSERT INTO tbcliente (NomeCli, NumEnd, CompEnd, CEP)
+    IF NOT EXISTS (SELECT 1 FROM tbendereco WHERE CEP = pCEP) THEN
+        INSERT INTO tbendereco(Logradouro, CEP, BairroId, CidadeId, UFId)
+        VALUES (pLogradouro, pCEP, vBairroId, vCidadeId, vUFId);
+    END IF;
+
+    INSERT INTO tbcliente(NomeCli, NumEnd, CompEnd, CEP)
     VALUES (pNomeCli, pNumEnd, pCompEnd, pCEP);
 
     SET vIdCli = LAST_INSERT_ID();
 
-    INSERT INTO tbcliente_pj (CNPJ, IE, IdCli)
+    INSERT INTO tbcliente_pj(CNPJ, IE, IdCli)
     VALUES (pCNPJ, pIE, vIdCli);
 
-END $$
+END$$
 
 DELIMITER ;
 
 -- Chamadas:
-call inserir_clientepf(1, 'Pimpão', 325, null, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678911, 12345678, '0', '2000-10-12');
-call inserir_clientepf(2, 'Disney Chaplin', 89, 'Ap. 12', 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912, 12345679, '0', '2001-11-21');
-call inserir_clientepf(3, 'Marciano', 744, null, 12345054, 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ', 12345678913, 12345680, '0', '2001-06-01');
-call inserir_clientepf(4, 'Lança Perfume', 128, null, 12345059, 'Rua Vieia', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678914, 12345681, 'X', '2004-04-05');
-call inserir_clientepf(5, 'Remédio Amargo', 2585, null, 12345058, 'Av Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT', 12345678915, 12345682, '0', '2002-07-15');
+
+call inserir_clientepj('Paganada', 159, NULL, 12345051, 'Av Brasil', 'Lapa', 'Campinas', 'SP', 12345678912345, 98765432198);
+call inserir_clientepj('Caloteando', 69, NULL, 12345053, 'Av Paulista', 'Penha', 'Rio de Janeiro', 'RJ', 12345678912346, 98765432199);
+call inserir_clientepj('Semgrana', 189, NULL, 12345060, 'Rua dos Amores', 'Sei Lá', 'Recife', 'PE', 12345678912347, 98765432100);
+call inserir_clientepj('Cemreais', 5024, 'Sala 23', 12345060, 'Rua dos Amores', 'Sei Lá', 'Recife', 'PE', 12345678912348, 98765432101);
+call inserir_clientepj('Durango', 1254, NULL, 12345060, 'Rua dos Amores', 'Sei Lá', 'Recife', 'PE', 12345678912349, 98765432102);
 
 
 -- EX9 - COMPRAS
@@ -340,7 +354,6 @@ CREATE PROCEDURE spInserir_Compras(
     IN pValorTotal DECIMAL(8,2)
 )
 BEGIN
-    -- Verifica fornecedor
     IF EXISTS (SELECT 1 FROM tbfornecedor WHERE Nome = pFornecedor)
        AND EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigo)
     THEN
@@ -369,86 +382,157 @@ call spInserir_Compras(156354, '23/11/2021', 'Revenda Chico Loco', 1234567891011
 
 -- EX10 - REGISTRO DE VENDAS
 
-delimiter $$
-create procedure spinserir_registrovenda(
-pNumeroVenda int,
-pCliente varchar(200),
-pCodigoBarras decimal(14,0),
-pQtd int,
-pTotalVenda decimal(8,2))
-begin
-declare vIdCli int;
-declare vValorItem decimal(8,2);
-if exists (select 1 from tbcliente where NomeCli = pCliente) and exists (select 1 from tbproduto where CodigoBarras = pCodigoBarras) then
-	select IdCli into vIdCli from tbcliente where NomeCli = pCliente;
-    select Valor into vValorItem from tbproduto where CodigoBarras = pCodigoBarras;
-    
-     insert into tbvenda(NumeroVenda, DataVenda, TotalVenda, IdCli)
-    values(pNumeroVenda,current_date(), pTotalVenda, vIdCli);
+DELIMITER $$
 
-	insert into tbitemvenda(NumeroVenda, CodigoBarras, ValorItem, Qtd)
-    values(pNumeroVenda, pCodigoBarras, vValorItem, pQtd);
-    
-   
-end if; 
-end$$
-call spinserir_registrovenda(1,'Pimpão', 12345678910111, 1, 54.61);
-call spinserir_registrovenda(2,'Lança Perfume', 12345678910112, 2, 200.90);
-call spinserir_registrovenda(3,'Pimpão', 12345678910113, 1, 44.00);
+CREATE PROCEDURE spinserir_registrovenda(
+    IN pNumeroVenda INT,
+    IN pCliente VARCHAR(200),
+    IN pCodigoBarras DECIMAL(14,0),
+    IN pQtd INT
+)
+BEGIN
+    DECLARE vIdCli INT;
+    DECLARE vValorItem DECIMAL(8,2);
+    DECLARE vTotalVenda DECIMAL(8,2);
 
--- EX11
-delimiter $$
-create procedure spinserir_notafiscal(
-pNF int,
-pCliente varchar(200))
-begin
-	declare vTotalNota decimal(8,2);
-	declare vIdCli int;
-	if exists (select 1 from tbcliente where NomeCli = pCliente) then
-		select IdCli into vIdCli from tbcliente where NomeCli = pCliente;
-        select sum(TotalVenda) into vTotalNota from tbvenda where IdCli = vIdCli;
-        
-        if vTotalNota > 0 then
-			insert into tbnota_fiscal(NF, DataEmissao, TotalNota)
-			values(pNF, current_date(), vTotalNota);
-		end if;
-	end if;
-end$$
+    IF EXISTS (SELECT 1 FROM tbcliente WHERE NomeCli = pCliente) AND EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigoBarras) THEN
+       
+        SELECT IdCli INTO vIdCli FROM tbcliente WHERE NomeCli = pCliente;
+
+        SELECT Valor INTO vValorItem FROM tbproduto WHERE CodigoBarras = pCodigoBarras;
+
+        SET vTotalVenda = vValorItem * pQtd;
+
+        INSERT INTO tbvenda(NumeroVenda, DataVenda, TotalVenda, IdCli)
+        VALUES (pNumeroVenda, CURRENT_DATE(), vTotalVenda, vIdCli);
+
+        INSERT INTO tbitemvenda(NumeroVenda, CodigoBarras, ValorItem, Qtd)
+        VALUES (pNumeroVenda, pCodigoBarras, vValorItem, pQtd);
+
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Erro: cliente ou produto não cadastrado.';
+    END IF;
+
+END $$
+DELIMITER ;
+
+call spinserir_registrovenda(1,'Pimpão',        12345678910111, 1);
+call spinserir_registrovenda(2,'Lança Perfume', 12345678910112, 2);
+call spinserir_registrovenda(3,'Pimpão',        12345678910113, 1);
+
+
+-- EX11 - NOTA FISCAL
+
+DELIMITER $$
+
+CREATE PROCEDURE spinserir_notafiscal(
+    IN pNF INT,
+    IN pCliente VARCHAR(200)
+)
+BEGIN
+    DECLARE vIdCli INT;
+    DECLARE vTotalNota DECIMAL(8,2);
+
+    IF EXISTS (SELECT 1 FROM tbcliente WHERE NomeCli = pCliente) THEN
+
+        SELECT IdCli INTO vIdCli
+        FROM tbcliente
+        WHERE NomeCli = pCliente;
+
+        SELECT SUM(TotalVenda)
+        INTO vTotalNota
+        FROM tbvenda
+        WHERE IdCli = vIdCli;
+
+        IF vTotalNota IS NOT NULL AND vTotalNota > 0 THEN
+            INSERT INTO tbnota_fiscal (NF, DataEmissao, TotalNota)
+            VALUES (pNF, CURRENT_DATE(), vTotalNota);
+        END IF;
+
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+-- Chamadas 
 
 call spinserir_notafiscal(359, 'Pimpão');
 call spinserir_notafiscal(360, 'Lança Perfume');
 
--- ex12
+
+-- EX 12 - PRODUTOS 
+
 call inserir_produto(12345678910130, 'Camiseta de Poliéster', 33.61, 100);
 call inserir_produto(12345678910131, 'Blusa Frio Moletom', 200.00, 100);
 call inserir_produto(12345678910132, 'Vestido Decote Redondo', 144.00, 50);
 
--- Ex13
-delimiter $$
-create procedure spapagar_produtos(
-pCodigoBarras decimal(14,0))
-begin
-delete from tbproduto where CodigoBarras = pCodigoBarras;
-end$$
+
+-- EX13 - APAGAR PRODUTOS
+
+DELIMITER $$
+
+CREATE PROCEDURE spapagar_produtos(
+    pCodigoBarras DECIMAL(14,0)
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigoBarras) THEN
+        
+        DELETE FROM tbproduto 
+        WHERE CodigoBarras = pCodigoBarras;
+
+    END IF;
+
+END$$
+
+DELIMITER ;
+
+-- Chamadas 
+
 call spapagar_produtos(12345678910116);
 call spapagar_produtos(12345678910117);
 
--- ex14
-delimiter $$
-create procedure spupdate_produtos(
-pCodigoBarras decimal(14,0),
-pNome varchar(200),
-pValorUnitario decimal(8,2))
-begin
-update tbproduto set Nome = pNome, Valor = pValorUnitario where CodigoBarras = pCodigoBarras;
-end$$
-call spupdate_produtos(12345678910111, 'Rei de Papel Mache', 64.50);
-call spupdate_produtos(12345678910111, 'Rei de Papel Mache', 64.50);
 
--- Ex15
-delimiter $$
-create procedure spmostrar_produtos()
-begin
-select * from tbproduto;
-end$$
-call spmostrar_produtos();
+-- EX14 - ATUALIZAR PRODUTOS
+
+DELIMITER $$
+
+CREATE PROCEDURE spupdate_produtos(
+    pCodigoBarras DECIMAL(14,0),
+    pNome VARCHAR(200),
+    pValorUnitario DECIMAL(8,2)
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigoBarras) THEN
+        UPDATE tbproduto
+        SET Nome = pNome,
+            Valor = pValorUnitario
+        WHERE CodigoBarras = pCodigoBarras;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Chamadas
+
+call spupdate_produtos(12345678910111, 'Rei de Papel Mache', 64.50);
+call spupdate_produtos(12345678910112, 'Bolinha de Sabão', 120.00);
+call spupdate_produtos(12345678910113, 'Carro Bate Bate', 64.00);
+
+
+
+-- EX15 - MOSTRAR PRODUTOS
+
+DELIMITER $$
+
+CREATE PROCEDURE spMostrar_Produtos()
+BEGIN
+    SELECT * FROM tbproduto;
+END$$
+
+DELIMITER ;
+
+-- Chamadas 
+
+call spMostrar_Produtos();
