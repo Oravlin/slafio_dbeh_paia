@@ -354,16 +354,21 @@ CREATE PROCEDURE spInserir_Compras(
     IN pValorTotal DECIMAL(8,2)
 )
 BEGIN
+    -- Verifica fornecedor e produto
     IF EXISTS (SELECT 1 FROM tbfornecedor WHERE Nome = pFornecedor)
        AND EXISTS (SELECT 1 FROM tbproduto WHERE CodigoBarras = pCodigo)
     THEN
         
-        INSERT INTO tbcompra (NotaFiscal, DataCompra, ValorTotal, QtdTotal)
-        VALUES (pNotaFiscal, STR_TO_DATE(pDataCompra, '%d/%m/%Y'), pValorTotal, pQtdTotal);
+        -- Só insere na tabela tbcompra se a NotaFiscal NÃO existir
+        IF NOT EXISTS (SELECT 1 FROM tbcompra WHERE NotaFiscal = pNotaFiscal) THEN
+            INSERT INTO tbcompra (NotaFiscal, DataCompra, ValorTotal, QtdTotal)
+            VALUES (pNotaFiscal, STR_TO_DATE(pDataCompra, '%d/%m/%Y'), pValorTotal, pQtdTotal);
+        END IF;
 
+        -- Sempre insere o item da compra
         INSERT INTO tbitemcompra (ValorItem, CodigoBarras, NotaFiscal, Qtd)
         VALUES (pValorItem, pCodigo, pNotaFiscal, pQtd);
-
+		
     ELSE
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Fornecedor ou produto não encontrados.';
@@ -373,7 +378,7 @@ END $$
 DELIMITER ;
 
 -- Chamadas
-call spInserir_Compras(8449, '01/05/2018', 'Amoroso e Doce', 12345678910111, 22.22, 200, 700, 21944.00);
+call spInserir_Compras(8459, '01/05/2018', 'Amoroso e Doce', 12345678910111, 22.22, 200, 700, 21944.00);
 call spInserir_Compras(2482, '22/04/2020', 'Revenda Chico Loco', 12345678910112, 40.50, 180, 180, 7290.00);
 call spInserir_Compras(21563, '12/07/2020', 'Marcelo Dedal', 12345678910113, 3.00, 300, 300, 900.00);
 call spInserir_Compras(8459, '01/05/2018', 'Amoroso e Doce', 12345678910114, 35.00, 500, 700, 21944.00);
